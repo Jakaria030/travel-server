@@ -13,7 +13,7 @@ app.use(cors());
 import attractionRoutes from "./routes/attraction.routes.js";
 
 // routes middlewares
-app.use("/attraction", attractionRoutes);
+app.use("/api/v1/attraction", attractionRoutes);
 
 
 // root route welcome message
