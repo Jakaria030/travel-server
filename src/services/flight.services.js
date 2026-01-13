@@ -24,7 +24,7 @@ export const getFlightDetails = async (token) => {
 
 // save flight details
 export const insertFlightDetails = async (flightDetails) => {
-    if (!flightDetails.length) return [];
+    if (!flightDetails?.length) return [];
 
     const values = [];
     const placeholders = flightDetails.map((item, index) => {
@@ -79,7 +79,7 @@ export const retrievedAndStoreFlightDetailsFromRapidApi = async (location) => {
     const maxAirportCount = 2;
     const airportList = [];
 
-    for (let indx = 0; indx < Math.min(airports.length, maxAirportCount); indx++) {
+    for (let indx = 0; indx < Math.min(airports?.length, maxAirportCount); indx++) {
         if (indx === maxAirportCount) break;
 
         airportList.push({
@@ -91,7 +91,7 @@ export const retrievedAndStoreFlightDetailsFromRapidApi = async (location) => {
 
     // 2 -> Search flight and get tokens, assume that Dhaka airport id is the from id and flight date is today's date+1;
     const flightDetails = [];
-    for (let indx = 0; indx < airportList.length; indx++) {
+    for (let indx = 0; indx < airportList?.length; indx++) {
         const token = await getFlightToken("DAC.AIRPORT", airportList[indx].airport_id, departDate());
 
         // 3 -> search flight details using token
@@ -110,7 +110,6 @@ export const retrievedAndStoreFlightDetailsFromRapidApi = async (location) => {
             fare: Math.floor(details?.priceBreakdown?.total?.units)
         });
     }
-
     // save flight details in database
     const result = await insertFlightDetails(flightDetails);
 
