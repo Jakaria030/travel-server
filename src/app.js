@@ -11,9 +11,13 @@ app.use(cors());
 
 // routes import
 import attractionRoutes from "./routes/attraction.routes.js";
+import flightRoutes from "./routes/flight.routes.js";
+import flightAndAttractionRoutes from "./routes/flightAndAttraction.routes.js";
 
 // routes middlewares
 app.use("/api/v1/attraction", attractionRoutes);
+app.use("/api/v1/flight", flightRoutes);
+app.use("/api/v1", flightAndAttractionRoutes);
 
 
 // root route welcome message

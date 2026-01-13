@@ -1,12 +1,16 @@
 import pool from "../config/db.js";
 import { rapidApiBaseURL, rapidApiOptions } from "../config/rapidApi.js";
+import { formatWhatsIncluded } from "../utils/utils.js";
 
-
+// fetch attraction details using slug
 export const fetchAttractionDetails = async (slug) => {
     const url = `${rapidApiBaseURL}/attraction/getAttractionDetails?slug=${slug}`;
-
+    const response = await fetch(url, rapidApiOptions);
+    const result = await response.json();
+    return result?.data;
 }
 
+// attraction details insert
 export const insertAttractionDetails = async (attractionDetails) => {
     if (!attractionDetails.length) return [];
 
@@ -17,7 +21,7 @@ export const insertAttractionDetails = async (attractionDetails) => {
         values.push(
             item.attraction_name,
             item.attraction_slug,
-            item.additionalInfo,
+            item.additional_info,
             item.has_free_cancellation,
             item.attraction_image,
             item.attraction_price,
@@ -41,38 +45,59 @@ export const insertAttractionDetails = async (attractionDetails) => {
       whats_includes,
       city_name,
       country_code
-    )
-    VALUES ${placeholders.join(",")}
-    RETURNING *
-  `;
+    ) VALUES ${placeholders.join(",")} RETURNING *`;
 
     const result = await pool.query(query, values);
 
-    return result.rows;   // ✅ inserted rows
+    return result.rows;
 };
 
-
-export const retrievedAndStoreAttractionLocationsFromRapidApi = async (location) => {
+// attraction details retrieved and store in database
+export const retrievedAndStoreAttractionDetailsFromRapidApi = async (location) => {
+    // fetch attraction slug list using location
     const slugFetchURL = `${rapidApiBaseURL}/attraction/searchLocation?query=${location}`;
-
     const response = await fetch(slugFetchURL, rapidApiOptions);
     const data = await response.json();
+    const products = data?.data?.products;
 
-
+    // max slug count assign 2 for reduce api call
     const maxSlugCount = 2;
-    const attractionLocations = data.data?.products?.map((product, indx) => {
-        if (indx === maxSlugCount)
-            return {
-                attraction_slug: product.productSlug,
-                city_name: product.cityName,
-                country_code: product.countryCode,
-            };
-    });
+    const attractionSlugList = [];
+
+    for (let indx = 0; indx < Math.min(products.length, maxSlugCount); indx++) {
+        if (indx === maxSlugCount) break;
+
+        attractionSlugList.push({
+            attraction_slug: products[indx].productSlug,
+            city_name: products[indx].cityName,
+            country_code: products[indx].countryCode
+        });
+    }
 
 
+    // get attraction data and format according to attractionDetails table schema
+    const attractionDetails = [];
+    for (let indx = 0; indx < attractionSlugList.length; indx++) {
+        const details = await fetchAttractionDetails(attractionSlugList[indx].attraction_slug);
+
+        if (!details) continue;
+
+        attractionDetails.push({
+            attraction_name: details?.name,
+            attraction_slug: details?.slug,
+            additional_info: details?.additionalInfo,
+            has_free_cancellation: details?.cancellationPolicy?.hasFreeCancellation,
+            attraction_image: details?.photos[0].medium,
+            attraction_price: Math.floor(details?.representativePrice?.chargeAmount),
+            whats_includes: formatWhatsIncluded(details?.whatsIncluded),
+            city_name: attractionSlugList[indx].city_name,
+            country_code: attractionSlugList[indx].country_code
+        });
+    }
 
 
+    // call insertAttractionDetails to insert into table;
+    const result = await insertAttractionDetails(attractionDetails);
 
-
-    return attractionLocations;
+    return result;
 };
